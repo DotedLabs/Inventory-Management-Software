@@ -1,0 +1,7 @@
+cd C:\java\inventory
+
+javac -d .\bin -cp "ojdbc14.jar;jfreechart-1.0.17.jar;rs2xml.jar;jcommon-1.0.21.jar;.\bin" src\*.java
+
+java -cp "ojdbc14.jar;jfreechart-1.0.17.jar;rs2xml.jar;jcommon-1.0.21.jar;.\bin" WelcomeScreen
+
+jar cfm Inventory.jar manifest.txt bin\*

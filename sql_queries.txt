@@ -1,0 +1,166 @@
+create table product_table
+(product_id varchar2(10) constraint pk_pid primary key,
+product_name varchar2(30),
+product_category varchar2(30),
+product_quantity number(10) constraint cc_quan check(product_quantity>=0),
+price number(12,2) constraint cc_price check(price>=0))
+
+//Add constraint product name as unique
+
+//For DataAnalysis
+//Order no, product id is the primary key
+create table data_table
+(customer_no varchar2(10),
+product_ID varchar2(20) constraint fk_pid_dt references product_table,
+order_no varchar2(30),
+qty varchar2(20))
+
+//For bill display
+create table display_table
+(Product_ID varchar2(20) constraint fk_pid_displaytable references product_table,
+product_name varchar2(30),
+product_price varchar2(10),
+p_quantity varchar2(20),
+product_total varchar2(20))
+
+create table notification_table
+(product_id varchar2(10) constraint notification_fk references product_table,
+Product_name varchar2(30),
+Product_quantity varchar2(30))
+
+create table inventory_emp
+(empid varchar2(20) constraint pk_empid primary key,
+empname varchar2(50),
+password varchar2(20) constraint nn_emppass not null,
+date_join varchar2(50),
+address varchar2(500),
+emailid varchar2(50),
+mobileno varchar2(20),
+totalwork number(20))
+
+insert into inventory_emp values ('1','Khantil','khantil','03/15/2016','9409033319','khantilchoksi@gmail.com')
+
+insert into inventory_emp values ('2','Niriksha','niriksha','10/27/2016','9601012666','niriksha.dalal10@gmail.com')
+
+insert into inventory_emp values ('3','Meesam','meesam','08/29/2016','7600923602','syedmeesam89@gmail.com')
+
+create table inventory_manager
+(managerid varchar2(20) constraint pk_managerid primary key,
+managername varchar2(50),
+password varchar2(20) constraint nn_managerpass not null)
+
+insert into inventory_manager values
+('1','Steve','ccd')
+
+create table emp_work
+(sessionid number(20) constraint pk_sessionid primary key,
+empid varchar2(20) constraint fk_emp references inventory_emp on delete cascade,
+login date,
+logout date,
+work_duration number(30))
+
+insert into emp_work values(1,1,sysdate,null,null)
+select to_char(login,'hh:mi:ss AM'),to_char(logout,'hh:mi:ss AM'),work_duration from emp_work
+
+update emp_work
+set logout = sysdate
+where sessionid=1
+
+update emp_work
+set work_duration= (logout-login)*1440
+--------------------------------------------------
+create or replace function notificationExist(pid product_table.product_id%type) return boolean is
+r notification_table%rowtype;
+begin 
+
+select * into r from notification_table where product_id = pid;
+return true;
+
+exception 
+when no_data_found then
+return false;
+
+end;
+
+---------------------------------------------------------
+declare
+b boolean;
+begin
+b:= notificationExist(2);
+dbms_output.put_line(case when b then 'True' else 'false' end);
+
+end;
+--------------------------------------------------
+create or replace trigger notifyProduct
+after insert or update on product_table
+for each row
+begin
+if (:new.product_quantity < 20) then
+
+if (notificationExist(:new.product_id)) then
+
+update notification_table
+set product_quantity = :new.product_quantity
+where product_id = :new.product_id;
+else
+insert into notification_table values(:new.product_id, :new.product_name, :new.product_quantity);
+end if;
+
+else
+
+if (notificationExist(:new.product_id)) then
+delete from notification_table where product_id= :new.product_id;
+end if;
+
+end if;
+
+end;
+/
+-------------------------------------------------------
+update product_table
+set product_quantity = 15
+where product_id = 5
+--------------------------------------------------------------
+create or replace trigger workduration
+before update on emp_work
+for each row
+begin
+:new.work_duration := (:new.logout - :new.login)*1440;
+
+end;
+-----------------------------------------------------------
+
+// Testing pl/sql block inside java
+declare
+ad varchar2(20);
+begin
+ad := 'Mujmahuda';
+update inventory_emp
+set address = ad
+where empid=2;
+commit;
+end;
+
+----------------------------------------------------------------
+
+create or replace procedure calculateWork is
+cursor cemp is select * from inventory_emp for update;
+w number(20);
+
+begin
+for remp in cemp
+loop
+w := 0;
+select sum(work_duration) into w from emp_work where empid= remp.empid;
+update inventory_emp
+set totalwork = w
+where current of cemp;
+end loop;
+
+commit;
+end;
+-------------------------------------------------------
+declare
+begin
+calculateWork;
+end;

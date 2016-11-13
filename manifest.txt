@@ -1,0 +1,3 @@
+Main-Class: bin.WelcomeScreen
+Class-Path: ojdbc14.jar jfreechart-1.0.17.jar rs2xml.jar jcommon-1.0.21.jar .\bin
+
